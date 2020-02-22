@@ -23,7 +23,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="models.py" />
-    <Compile Include="PythonApplication1.py" />
     <Compile Include="sentiment_classifier.py" />
     <Compile Include="sentiment_data.py" />
   </ItemGroup>
