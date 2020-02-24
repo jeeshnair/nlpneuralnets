@@ -83,11 +83,8 @@ class SentimentClassifier(object):
                 self.train()
 
             acc = []
-            print("train length : ", len(train_data))
-
             i = 0
             for ex in train_data:
-                print("Processing trainining data : ", i)
                 feat = self.featurize(ex)
                 output = self.forward(feat)
                 self.update_parameters(output, feat, ex, lr)
@@ -249,17 +246,49 @@ class MyNNClassifier(FNNClassifier):
     def __init__(self, args):
         super().__init__(args)
         # Start of your code
-
+        self.conv1 = nn.Sequential( nn.Conv2d(1, 1, (1, 300)), nn.ReLU())
+        self.conv2 = nn.Sequential( nn.Conv2d(1, 1, (2, 300)), nn.ReLU())
+        self.conv3 = nn.Sequential( nn.Conv2d(1, 1, (3, 300)), nn.ReLU())
+        self.conv4 = nn.Sequential( nn.Conv2d(1, 1, (4, 300)), nn.ReLU())
+        self.conv5 = nn.Sequential( nn.Conv2d(1, 1, (5, 300)), nn.ReLU())
+        self.dropout = nn.Dropout(0.1)
+        self.outputLayer = torch.nn.Sequential(torch.nn.Linear(740, 1),
+            torch.nn.Sigmoid())
 
         # End of your code
         self.optim = torch.optim.Adam(self.parameters(), args.learning_rate)
 
+        self.lossFunction = torch.nn.MSELoss(reduction='sum')
+        self.optim = torch.optim.SGD(self.parameters(), lr=args.learning_rate, momentum=0.9)
+
+    def featurize(self, ex):
+        # You do not need to change this function
+        # return a [T x D] tensor where each row i contains the D-dimensional
+        if(len(ex.words)<150):
+            for i in range(150-len(ex.words)):
+                ex.words.append("<pad>")
+        # embedding for the ith word out of T words
+        embs = [self.glove.emb(w.lower()) for w in ex.words]
+        return torch.Tensor(embs)
+
     def forward(self, feat):
         feat = feat.unsqueeze(0)
-
-        raise NotImplementedError('Your code here')
-
-
+        feat = feat.unsqueeze(0)
+        out1 = self.conv1(feat)
+        out2 = self.conv2(feat)
+        out3 = self.conv3(feat)
+        out4 = self.conv4(feat)
+        out5 = self.conv5(feat)
+        concatenated =  torch.cat([out1,out2,out3,out4,out5],2)
+        extracted = concatenated.squeeze(0)
+        extracted = extracted.squeeze(0)
+        extracted = extracted.squeeze(1)
+        extracted = extracted.unsqueeze(0)
+        extracted = self.dropout(extracted)
+        final = self.outputLayer(extracted)
+        
+        return final
+        
 def train_model(args, train_exs: List[SentimentExample], dev_exs: List[SentimentExample]) -> SentimentClassifier:
     """
     Main entry point for your modifications. Trains and returns one of several models depending on the args

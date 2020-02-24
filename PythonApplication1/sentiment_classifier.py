@@ -21,7 +21,7 @@ def _parse_args():
     :return: the parsed args bundle
     """
     parser = argparse.ArgumentParser(description='trainer.py', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--model', type=str, default='RNN', choices=('TRIVIAL', 'PERCEPTRON', 'FNN', 'RNN', 'MyNN'), help='model to run')
+    parser.add_argument('--model', type=str, default='MyNN', choices=('TRIVIAL', 'PERCEPTRON', 'FNN', 'RNN', 'MyNN'), help='model to run')
     parser.add_argument('--feats', type=str, default='UNIGRAM', choices=('UNIGRAM', 'BETTER'), help='feats to use')
     parser.add_argument('--learning_rate', type=float, default=1e-3, help='learning rate')
     parser.add_argument('--epoch', type=int, default=50, help='epochs to train for')
