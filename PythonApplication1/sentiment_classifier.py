@@ -21,10 +21,10 @@ def _parse_args():
     :return: the parsed args bundle
     """
     parser = argparse.ArgumentParser(description='trainer.py', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--model', type=str, default='MyNN', choices=('TRIVIAL', 'PERCEPTRON', 'FNN', 'RNN', 'MyNN'), help='model to run')
+    parser.add_argument('--model', type=str, default='FNN', choices=('TRIVIAL', 'PERCEPTRON', 'FNN', 'RNN', 'MyNN'), help='model to run')
     parser.add_argument('--feats', type=str, default='UNIGRAM', choices=('UNIGRAM', 'BETTER'), help='feats to use')
     parser.add_argument('--learning_rate', type=float, default=1e-3, help='learning rate')
-    parser.add_argument('--epoch', type=int, default=50, help='epochs to train for')
+    parser.add_argument('--epoch', type=int, default=20, help='epochs to train for')
     parser.add_argument('--train_path', type=str, default='data/train.txt', help='path to train set (you should not need to modify)')
     parser.add_argument('--dev_path', type=str, default='data/dev.txt', help='path to dev set (you should not need to modify)')
     parser.add_argument('--blind_test_path', type=str, default='data/test-blind.txt', help='path to blind test set (you should not need to modify)')

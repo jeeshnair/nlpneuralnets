@@ -45,6 +45,10 @@ class UnigramFeatureExtractor(FeatureExtractor):
 
 
 class BetterFeatureExtractor(FeatureExtractor):
+    def __init__(self, vocabulary , bigrams):
+        self.bigrams = bigrams
+        self.vocabulary = vocabulary
+        pass
     """
     Better feature extractor...try whatever you can think of!
     """
@@ -53,8 +57,33 @@ class BetterFeatureExtractor(FeatureExtractor):
         Q3: Implement the unigram feature extractor.
         Hint: You may want to use the Counter class.
         """
-        raise NotImplementedError('Your code here')
+        ex_words_lower = [x.lower() for x in ex_words]
+        features = [1]
 
+        for key in self.vocabulary:
+            if(key in ex_words_lower):
+                features.append(1)
+            else:
+                features.append(0)
+
+        bigramFeatures = dict()
+        for key in self.bigrams:
+           for i in range(len(ex_words_lower)):
+                if(i == 0):
+                    bigramKey = ("<s>",ex_words_lower[i])
+                else:
+                    bigramKey = (ex_words_lower[i - 1], ex_words_lower[i])
+                if (key == bigramKey):
+                    bigramFeatures[key] = 1
+                    break
+                
+        for  key in self.bigrams:
+            features.append( bigramFeatures.get(key,0))
+
+        return features;
+
+    def feature_size(self):
+        return len(self.bigrams) + len(self.vocabulary)
 
 class SentimentClassifier(object):
 
@@ -246,11 +275,11 @@ class MyNNClassifier(FNNClassifier):
     def __init__(self, args):
         super().__init__(args)
         # Start of your code
-        self.conv1 = nn.Sequential( nn.Conv2d(1, 1, (1, 300)), nn.ReLU())
-        self.conv2 = nn.Sequential( nn.Conv2d(1, 1, (2, 300)), nn.ReLU())
-        self.conv3 = nn.Sequential( nn.Conv2d(1, 1, (3, 300)), nn.ReLU())
-        self.conv4 = nn.Sequential( nn.Conv2d(1, 1, (4, 300)), nn.ReLU())
-        self.conv5 = nn.Sequential( nn.Conv2d(1, 1, (5, 300)), nn.ReLU())
+        self.conv1 = nn.Sequential(nn.Conv2d(1, 1, (1, 300)), nn.ReLU())
+        self.conv2 = nn.Sequential(nn.Conv2d(1, 1, (2, 300)), nn.ReLU())
+        self.conv3 = nn.Sequential(nn.Conv2d(1, 1, (3, 300)), nn.ReLU())
+        self.conv4 = nn.Sequential(nn.Conv2d(1, 1, (4, 300)), nn.ReLU())
+        self.conv5 = nn.Sequential(nn.Conv2d(1, 1, (5, 300)), nn.ReLU())
         self.dropout = nn.Dropout(0.1)
         self.outputLayer = torch.nn.Sequential(torch.nn.Linear(740, 1),
             torch.nn.Sigmoid())
@@ -259,13 +288,13 @@ class MyNNClassifier(FNNClassifier):
         self.optim = torch.optim.Adam(self.parameters(), args.learning_rate)
 
         self.lossFunction = torch.nn.MSELoss(reduction='sum')
-        self.optim = torch.optim.SGD(self.parameters(), lr=args.learning_rate, momentum=0.9)
+        self.optim = torch.optim.SGD(self.parameters(), lr=args.learning_rate, momentum=0.1)
 
     def featurize(self, ex):
         # You do not need to change this function
         # return a [T x D] tensor where each row i contains the D-dimensional
-        if(len(ex.words)<150):
-            for i in range(150-len(ex.words)):
+        if(len(ex.words) < 150):
+            for i in range(150 - len(ex.words)):
                 ex.words.append("<pad>")
         # embedding for the ith word out of T words
         embs = [self.glove.emb(w.lower()) for w in ex.words]
@@ -279,7 +308,7 @@ class MyNNClassifier(FNNClassifier):
         out3 = self.conv3(feat)
         out4 = self.conv4(feat)
         out5 = self.conv5(feat)
-        concatenated =  torch.cat([out1,out2,out3,out4,out5],2)
+        concatenated = torch.cat([out1,out2,out3,out4,out5],2)
         extracted = concatenated.squeeze(0)
         extracted = extracted.squeeze(0)
         extracted = extracted.squeeze(1)
@@ -309,8 +338,28 @@ def train_model(args, train_exs: List[SentimentExample], dev_exs: List[Sentiment
                  vocabulary[key.lower()] = wordcount[key]
         feat_extractor = UnigramFeatureExtractor(vocabulary)
     elif args.feats == "BETTER":
+        wordcount = dict()
+        vocabulary = dict()
+        for train_ex in train_exs:
+            for word in train_ex.words:
+                wordcount[word] = wordcount.get(word,0) + 1
+        for key in wordcount:
+            if(wordcount[key] > 1):
+                 vocabulary[key.lower()] = wordcount[key]
+
         # Add additional preprocessing code here
-        feat_extractor = BetterFeatureExtractor()
+        bigram = dict()
+        finalBigrams = dict()
+        for train_ex in train_exs:
+            for i in range(len(train_ex.words)):
+                if(i == 0):
+                    bigram[("<s>",train_ex.words[i].lower())] = bigram.get(("<s>",train_ex.words[i].lower()),0) + 1
+                else:
+                    bigram[(train_ex.words[i - 1].lower(), train_ex.words[i].lower())] = bigram.get((train_ex.words[i - 1].lower(), train_ex.words[i].lower()),0) + 1
+        for key in bigram:
+            if(bigram[key]>2):
+                finalBigrams[key] = bigram[key]
+        feat_extractor = BetterFeatureExtractor(vocabulary, finalBigrams)
     else:
         raise Exception("Pass in UNIGRAM, or BETTER to run the appropriate system")
 
@@ -329,4 +378,13 @@ def train_model(args, train_exs: List[SentimentExample], dev_exs: List[Sentiment
         raise NotImplementedError()
 
     model.run_train(train_exs, dev_exs, lr=args.learning_rate, epoch=args.epoch)
+    if args.model == "PERCEPTRON":
+        # Write weights to file
+        f = open("weights.txt", "w")
+        f.write('\n'.join(str(elem) for elem in model.weights))
+        f.close()
+        # Write vocabulary to file
+        f = open("vocabulary.txt", "w")
+        f.write('\n'.join([str(elem) for elem in feat_extractor.vocabulary]) )
+        f.close()
     return model
